@@ -1,16 +1,19 @@
-FROM ubuntu:latest AS build
+# Etapa 1: Build da aplicação usando Maven
+FROM maven:3.9.6-eclipse-temurin-17 AS builder
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-RUN apt-get update
-RUN apt-get install openjdk-17-jdk -y
-COPY . .
+# Etapa 2: Imagem final, apenas com o JAR
+FROM eclipse-temurin:17-jdk
+WORKDIR /app
 
-RUN apt-get install maven -y
-RUN ./mvnw clean package -DskipTests
+# Copia o JAR gerado no build para a imagem final
+COPY --from=builder /app/target/*.jar app.jar
 
-FROM openjdk:17-jdk-slim
-
+# Expõe a porta definida no application.properties
 EXPOSE 8081
 
-COPY --from=build /target/app.jar app.jar
-
+# Define o comando de inicialização
 ENTRYPOINT ["java", "-jar", "app.jar"]
