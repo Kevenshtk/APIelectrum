@@ -1,19 +1,23 @@
 # Etapa 1: Build da aplicação usando Maven
 FROM maven:3.9.6-eclipse-temurin-17 AS builder
 WORKDIR /app
-COPY APIelectrum/pom.xml .
-COPY APIelectrum/src ./src
+COPY pom.xml .
+COPY src ./src
 RUN mvn clean package -DskipTests
 
-# Etapa 2: Imagem final, apenas com o JAR
+# Etapa 2: Imagem final, apenas com o JAR e o banco
 FROM eclipse-temurin:17-jdk
 WORKDIR /app
 
-# Copia o JAR gerado no build para a imagem final
+# Copia o JAR gerado
 COPY --from=builder /app/target/*.jar app.jar
 
-# Expõe a porta definida no application.properties
+# Cria a pasta /data e copia o banco inicial
+RUN mkdir /data
+COPY banco/bdelectrum.mv.db /data/
+
+# Expor porta definida no application.properties
 EXPOSE 8081
 
-# Define o comando de inicialização
+# Comando para rodar a aplicação
 ENTRYPOINT ["java", "-jar", "app.jar"]
