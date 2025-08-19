@@ -14,7 +14,10 @@ import java.util.Objects;
 import java.util.Optional;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = {
+        "http://localhost:3000",
+        "https://electrum-eta.vercel.app"
+})
 @RequestMapping("/products")
 public class ProdutoController {
     @Autowired
