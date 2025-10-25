@@ -16,7 +16,8 @@ import java.util.Optional;
 @RestController
 @CrossOrigin(origins = {
         "http://localhost:3000",
-        "https://electrum-eta.vercel.app"
+        "https://electrum-eta.vercel.app",
+        "https://electrum-7ek8m1phq-kevenshtks-projects.vercel.app"
 })
 @RequestMapping("/products")
 public class ProdutoController {
@@ -35,6 +36,17 @@ public class ProdutoController {
     @GetMapping()
     public ResponseEntity<List<Produto>> getAllProdutos(){
         return ResponseEntity.status(HttpStatus.OK).body(repositoryProduto.findAll());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Object> getProdutosPorId(@PathVariable(value="id") Integer id){
+        Optional<Produto> produto = repositoryProduto.findById(id);
+
+        if(produto.isEmpty()){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Produto "+id+" não encontrado.");
+        }
+
+        return ResponseEntity.status(HttpStatus.OK).body( produto.get());
     }
 
     @PutMapping("/{id}")
