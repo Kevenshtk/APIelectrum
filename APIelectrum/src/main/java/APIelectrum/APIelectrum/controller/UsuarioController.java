@@ -14,8 +14,9 @@ import java.util.List;
 @RestController
 @CrossOrigin(origins = {
         "http://localhost:3000",
+        "http://localhost:8080",
         "https://electrum-eta.vercel.app",
-        "https://electrum-7ek8m1phq-kevenshtks-projects.vercel.app"
+        "https://electrum-amiiv8aht-kevenshtks-projects.vercel.app"
 })
 @RequestMapping("/users")
 public class UsuarioController {
