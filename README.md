@@ -19,7 +19,6 @@ O banco de dados utilizado é leve (H2) para desenvolvimento/local, e a aplicaç
 - Spring Boot
 - H2 Database
 - Docker
-- Prettier
 
 ## Funcionalidades
 
