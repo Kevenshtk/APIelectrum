@@ -18,7 +18,6 @@ import java.util.List;
         "http://localhost:3000",
         "http://localhost:8080",
         "https://electrum-eta.vercel.app",
-        "https://electrum-amiiv8aht-kevenshtks-projects.vercel.app"
 })
 @RequestMapping("/favorites")
 public class FavoritoController {
@@ -38,6 +37,11 @@ public class FavoritoController {
         List<Produto> produtos = favoritos.stream()
                 .map(Favorito::getProduto)
                 .toList();
+
+        if (produtos.isEmpty() || favoritos.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
         return ResponseEntity.ok(produtos);
     }
 
