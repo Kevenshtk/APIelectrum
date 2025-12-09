@@ -1,9 +1,11 @@
 package APIelectrum.APIelectrum.controller;
 
 import APIelectrum.APIelectrum.dto.FavoritoDTO;
+import APIelectrum.APIelectrum.module.Carrinho;
 import APIelectrum.APIelectrum.module.Favorito;
 import APIelectrum.APIelectrum.module.Produto;
 import APIelectrum.APIelectrum.repository.FavoritoRepository;
+import APIelectrum.APIelectrum.repository.ProdutoRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,12 +25,21 @@ import java.util.List;
 public class FavoritoController {
     @Autowired
     FavoritoRepository repositoryFavorito;
+    @Autowired
+    private ProdutoRepository repositoryProduto;
 
     @PostMapping()
-    public ResponseEntity<Favorito> addFavorito(@RequestBody FavoritoDTO favorioDTO){
+    public ResponseEntity<Produto> addFavorito(@RequestBody FavoritoDTO favorioDTO){
         var favoritoModelo = new Favorito();
         BeanUtils.copyProperties(favorioDTO, favoritoModelo);
-        return ResponseEntity.status(HttpStatus.CREATED).body(repositoryFavorito.save(favoritoModelo));
+
+        var favoritoSalvo = repositoryFavorito.save(favoritoModelo);
+
+        Produto produto = repositoryProduto.findById(
+                favorioDTO.produto().getId()
+        ).orElseThrow();
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(produto);
     }
 
     @GetMapping("user/{idUsuario}")

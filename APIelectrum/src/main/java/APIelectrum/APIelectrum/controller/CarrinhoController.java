@@ -4,6 +4,7 @@ import APIelectrum.APIelectrum.dto.CarrinhoDTO;
 import APIelectrum.APIelectrum.module.Carrinho;
 import APIelectrum.APIelectrum.module.Produto;
 import APIelectrum.APIelectrum.repository.CarrinhoRepository;
+import APIelectrum.APIelectrum.repository.ProdutoRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,14 +24,21 @@ import java.util.List;
 public class CarrinhoController {
     @Autowired
     CarrinhoRepository repositoryCarrinho;
+    @Autowired
+    private ProdutoRepository repositoryProduto;
 
     @PostMapping()
-    public ResponseEntity<Carrinho> addCarrinho(@RequestBody CarrinhoDTO carrinhoDTO){
+    public ResponseEntity<Produto> addCarrinho(@RequestBody CarrinhoDTO carrinhoDTO){
         var carrinhoModelo = new Carrinho();
-
         BeanUtils.copyProperties(carrinhoDTO, carrinhoModelo);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(repositoryCarrinho.save(carrinhoModelo));
+        var carrinhoSalvo = repositoryCarrinho.save(carrinhoModelo);
+
+        Produto produto = repositoryProduto.findById(
+                carrinhoDTO.produto().getId()
+        ).orElseThrow();
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(produto);
     }
 
     @GetMapping("/user/{idUsuario}")
