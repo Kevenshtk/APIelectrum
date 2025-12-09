@@ -38,10 +38,6 @@ public class FavoritoController {
                 .map(Favorito::getProduto)
                 .toList();
 
-        if (produtos.isEmpty() || favoritos.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
         return ResponseEntity.ok(produtos);
     }
 

@@ -40,10 +40,6 @@ public class CarrinhoController {
                 .map(Carrinho::getProduto)
                 .toList();
 
-        if (produtos.isEmpty() || carrinho.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
         return ResponseEntity.ok(produtos);
     }
 
