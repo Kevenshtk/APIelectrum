@@ -1,6 +1,7 @@
 package APIelectrum.APIelectrum.controller;
 
 import APIelectrum.APIelectrum.dto.CarrinhoDTO;
+import APIelectrum.APIelectrum.dto.CarrinhoResponseDTO;
 import APIelectrum.APIelectrum.module.Carrinho;
 import APIelectrum.APIelectrum.module.Produto;
 import APIelectrum.APIelectrum.repository.CarrinhoRepository;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @CrossOrigin(origins = {
@@ -29,26 +31,41 @@ public class CarrinhoController {
 
     @PostMapping()
     public ResponseEntity<Produto> addCarrinho(@RequestBody CarrinhoDTO carrinhoDTO){
-        var carrinhoModelo = new Carrinho();
-        BeanUtils.copyProperties(carrinhoDTO, carrinhoModelo);
+        Integer usuarioId = carrinhoDTO.usuario().getId();
+        Integer produtoId = carrinhoDTO.produto().getId();
 
-        var carrinhoSalvo = repositoryCarrinho.save(carrinhoModelo);
+        Optional<Carrinho> itemExistente =
+                repositoryCarrinho.findByUsuarioIdAndProdutoId(usuarioId, produtoId);
 
-        Produto produto = repositoryProduto.findById(
-                carrinhoDTO.produto().getId()
-        ).orElseThrow();
+        if (itemExistente.isPresent()) {
+            Carrinho carrinho = itemExistente.get();
+            carrinho.setQuantidade(carrinho.getQuantidade() + 1);
+            repositoryCarrinho.save(carrinho);
+        } else {
+            Carrinho novoCarrinho = new Carrinho();
+            novoCarrinho.setUsuario(carrinhoDTO.usuario());
+            novoCarrinho.setProduto(carrinhoDTO.produto());
+            novoCarrinho.setQuantidade(1);
+            repositoryCarrinho.save(novoCarrinho);
+        }
+
+        Produto produto = repositoryProduto
+                .findById(produtoId)
+                .orElseThrow();
 
         return ResponseEntity.status(HttpStatus.CREATED).body(produto);
     }
 
     @GetMapping("/user/{idUsuario}")
-    public ResponseEntity<List<Produto>> getProdutosCarrinho(@PathVariable(value = "idUsuario") Integer idUsuario){
+    public ResponseEntity<List<CarrinhoResponseDTO>> getProdutosCarrinho(@PathVariable(value = "idUsuario") Integer idUsuario){
         List<Carrinho> carrinho = repositoryCarrinho.findByUsuarioId(idUsuario);
-        List<Produto> produtos = carrinho.stream()
-                .map(Carrinho::getProduto)
+        List<CarrinhoResponseDTO> response = carrinho.stream()
+                .map(item -> new CarrinhoResponseDTO(item.getProduto(),
+                        item.getQuantidade()
+                ))
                 .toList();
 
-        return ResponseEntity.ok(produtos);
+        return ResponseEntity.ok(response);
     }
 
     @Transactional
@@ -59,4 +76,41 @@ public class CarrinhoController {
         repositoryCarrinho.deleteByUsuarioIdAndProdutoId(idUsuario, idProduto);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/user/{idUsuario}/product/{idProduto}/increment")
+    public ResponseEntity<Void> incrementarQuantidade(
+            @PathVariable Integer idUsuario,
+            @PathVariable Integer idProduto
+    ) {
+        Carrinho carrinho = repositoryCarrinho
+                .findByUsuarioIdAndProdutoId(idUsuario, idProduto)
+                .orElseThrow(() -> new RuntimeException("Produto não encontrado no carrinho"));
+
+        carrinho.setQuantidade(carrinho.getQuantidade() + 1);
+        repositoryCarrinho.save(carrinho);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/user/{idUsuario}/product/{idProduto}/decrement")
+    public ResponseEntity<Void> decrementarQuantidade(
+            @PathVariable Integer idUsuario,
+            @PathVariable Integer idProduto
+    ) {
+        Carrinho carrinho = repositoryCarrinho
+                .findByUsuarioIdAndProdutoId(idUsuario, idProduto)
+                .orElseThrow(() -> new RuntimeException("Produto não encontrado no carrinho"));
+
+        if (carrinho.getQuantidade() > 1) {
+            carrinho.setQuantidade(carrinho.getQuantidade() - 1);
+            repositoryCarrinho.save(carrinho);
+            return ResponseEntity.noContent().build();
+        } else {
+            repositoryCarrinho.delete(carrinho);
+            return ResponseEntity.ok().build();
+        }
+
+
+    }
+
 }

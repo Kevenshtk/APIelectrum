@@ -17,6 +17,8 @@ public class Carrinho implements Serializable {
     @ManyToOne
     @JoinColumn(name = "idProduto", nullable = false)
     private Produto produto;
+    @Column(nullable = false, columnDefinition = "INT DEFAULT 1")
+    private Integer quantidade;
 
     public Carrinho() {
     }
@@ -49,5 +51,13 @@ public class Carrinho implements Serializable {
 
     public void setProduto(Produto produto) {
         this.produto = produto;
+    }
+
+    public Integer getQuantidade() {
+        return quantidade;
+    }
+
+    public void setQuantidade(Integer quantidade) {
+        this.quantidade = quantidade;
     }
 }
