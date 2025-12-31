@@ -2,6 +2,7 @@ package APIelectrum.APIelectrum.controller;
 
 import APIelectrum.APIelectrum.dto.CarrinhoDTO;
 import APIelectrum.APIelectrum.dto.CarrinhoResponseDTO;
+import APIelectrum.APIelectrum.dto.CarrinhoTotalDTO;
 import APIelectrum.APIelectrum.module.Carrinho;
 import APIelectrum.APIelectrum.module.Produto;
 import APIelectrum.APIelectrum.repository.CarrinhoRepository;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -66,6 +68,22 @@ public class CarrinhoController {
                 .toList();
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/user/{idUsuario}/total")
+    public ResponseEntity<CarrinhoTotalDTO> getTotalCarrinho(
+            @PathVariable Integer idUsuario
+    ) {
+        List<Carrinho> carrinho = repositoryCarrinho.findByUsuarioId(idUsuario);
+
+        BigDecimal total = carrinho.stream()
+                .map(item ->
+                        BigDecimal.valueOf(item.getProduto().getPrice())
+                                .multiply(BigDecimal.valueOf(item.getQuantidade()))
+                )
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return ResponseEntity.ok(new CarrinhoTotalDTO(total));
     }
 
     @Transactional
