@@ -1,10 +1,9 @@
 package APIelectrum.APIelectrum.controller;
 
-import APIelectrum.APIelectrum.dto.UsuarioDTO;
-import APIelectrum.APIelectrum.module.Usuario;
-import APIelectrum.APIelectrum.repository.UsuarioRepository;
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import APIelectrum.APIelectrum.dto.request.UsuarioRequest;
+import APIelectrum.APIelectrum.dto.response.UsuarioResponse;
+import APIelectrum.APIelectrum.service.UsuarioService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,20 +19,20 @@ import java.util.List;
 })
 @RequestMapping("/users")
 public class UsuarioController {
-    @Autowired
-    UsuarioRepository usuarioRepository;
 
-    @PostMapping()
-    public ResponseEntity<Usuario> salvarUsuario(@RequestBody UsuarioDTO usuarioDTO){
-        var usuarioModelo = new Usuario();
+    private final UsuarioService usuarioService;
 
-        BeanUtils.copyProperties(usuarioDTO, usuarioModelo);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(usuarioRepository.save(usuarioModelo));
+    public UsuarioController(UsuarioService usuarioService) {
+        this.usuarioService = usuarioService;
     }
 
-    @GetMapping()
-    public  ResponseEntity<List<Usuario>> getAllUsuarios(){
-        return ResponseEntity.status(HttpStatus.OK).body(usuarioRepository.findAll());
+    @PostMapping
+    public ResponseEntity<UsuarioResponse> salvarUsuario(@RequestBody @Valid UsuarioRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.criar(request));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<UsuarioResponse>> getAllUsuarios() {
+        return ResponseEntity.ok(usuarioService.listar());
     }
 }

@@ -1,79 +1,51 @@
 package APIelectrum.APIelectrum.controller;
 
-import APIelectrum.APIelectrum.dto.ProdutoDTO;
-import APIelectrum.APIelectrum.module.Produto;
-import APIelectrum.APIelectrum.repository.ProdutoRepository;
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+
+import APIelectrum.APIelectrum.dto.request.ProdutoRequest;
+import APIelectrum.APIelectrum.dto.response.ProdutoResponse;
+import APIelectrum.APIelectrum.service.ProdutoService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 
 @RestController
 @CrossOrigin(origins = "*")
-/*@CrossOrigin(origins = {
-        "http://localhost:3000",
-        "http://localhost:8080",
-        "https://electrum-eta.vercel.app",
-        "https://electrum-amiiv8aht-kevenshtks-projects.vercel.app"
-})*/
 @RequestMapping("/products")
 public class ProdutoController {
-    @Autowired
-    ProdutoRepository repositoryProduto;
 
-    @PostMapping()
-    public ResponseEntity<Produto> salvarProduto(@RequestBody ProdutoDTO produtoDTO){
-        var produtoModelo = new Produto();
+    private final ProdutoService produtoService;
 
-        BeanUtils.copyProperties(produtoDTO, produtoModelo);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(repositoryProduto.save(produtoModelo));
+    public ProdutoController(ProdutoService produtoService) {
+        this.produtoService = produtoService;
     }
 
-    @GetMapping()
-    public ResponseEntity<List<Produto>> getAllProdutos(){
-        return ResponseEntity.status(HttpStatus.OK).body(repositoryProduto.findAll());
+    @PostMapping
+    public ResponseEntity<ProdutoResponse> salvarProduto(@RequestBody @Valid ProdutoRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(produtoService.criar(request));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<ProdutoResponse>> getAllProdutos() {
+        return ResponseEntity.ok(produtoService.listar());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Object> getProdutosPorId(@PathVariable(value="id") Integer id){
-        Optional<Produto> produto = repositoryProduto.findById(id);
-
-        if(produto.isEmpty()){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Produto "+id+" não encontrado.");
-        }
-
-        return ResponseEntity.status(HttpStatus.OK).body( produto.get());
+    public ResponseEntity<ProdutoResponse> getProdutoPorId(@PathVariable Integer id) {
+        return ResponseEntity.ok(produtoService.buscarPorId(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Object> atualizarProduto(@PathVariable(value="id") Integer id, @RequestBody ProdutoDTO produtoDTO){
-        Optional<Produto> produto = repositoryProduto.findById(id);
-
-        if(produto.isEmpty()){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Produto "+id+" não encontrado.");
-        }
-
-        BeanUtils.copyProperties(produtoDTO, produto.get());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(repositoryProduto.save(produto.get()));
+    public ResponseEntity<ProdutoResponse> atualizarProduto(@PathVariable Integer id,
+                                                            @RequestBody @Valid ProdutoRequest request) {
+        return ResponseEntity.ok(produtoService.atualizar(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Object> deletarProduto(@PathVariable(value="id") Integer id){
-        Optional<Produto> produto = repositoryProduto.findById(id);
-
-        if(produto.isEmpty()){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Produto "+id+" não encontrado.");
-        }
-
-        repositoryProduto.delete(produto.get());
-
-        return ResponseEntity.status(HttpStatus.OK).body("Porduto "+id+" removido com sucesso.");
+    public ResponseEntity<Void> deletarProduto(@PathVariable Integer id) {
+        produtoService.deletar(id);
+        return ResponseEntity.noContent().build();
     }
 }
