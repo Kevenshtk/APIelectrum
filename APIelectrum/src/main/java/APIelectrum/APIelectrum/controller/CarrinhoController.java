@@ -1,22 +1,16 @@
 package APIelectrum.APIelectrum.controller;
 
-import APIelectrum.APIelectrum.dto.CarrinhoDTO;
-import APIelectrum.APIelectrum.dto.CarrinhoResponseDTO;
-import APIelectrum.APIelectrum.dto.CarrinhoTotalDTO;
-import APIelectrum.APIelectrum.module.Carrinho;
-import APIelectrum.APIelectrum.module.Produto;
-import APIelectrum.APIelectrum.repository.CarrinhoRepository;
-import APIelectrum.APIelectrum.repository.ProdutoRepository;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import APIelectrum.APIelectrum.dto.request.CarrinhoRequest;
+import APIelectrum.APIelectrum.dto.response.CarrinhoItemResponse;
+import APIelectrum.APIelectrum.dto.response.CarrinhoTotalResponse;
+import APIelectrum.APIelectrum.dto.response.ProdutoResponse;
+import APIelectrum.APIelectrum.service.CarrinhoService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @CrossOrigin(origins = {
@@ -26,109 +20,46 @@ import java.util.Optional;
 })
 @RequestMapping("/shopping-cart")
 public class CarrinhoController {
-    @Autowired
-    CarrinhoRepository repositoryCarrinho;
-    @Autowired
-    private ProdutoRepository repositoryProduto;
 
-    @PostMapping()
-    public ResponseEntity<Produto> addCarrinho(@RequestBody CarrinhoDTO carrinhoDTO){
-        Integer usuarioId = carrinhoDTO.usuario().getId();
-        Integer produtoId = carrinhoDTO.produto().getId();
+    private final CarrinhoService carrinhoService;
 
-        Optional<Carrinho> itemExistente =
-                repositoryCarrinho.findByUsuarioIdAndProdutoId(usuarioId, produtoId);
+    public CarrinhoController(CarrinhoService carrinhoService) {
+        this.carrinhoService = carrinhoService;
+    }
 
-        if (itemExistente.isPresent()) {
-            Carrinho carrinho = itemExistente.get();
-            carrinho.setQuantidade(carrinho.getQuantidade() + 1);
-            repositoryCarrinho.save(carrinho);
-        } else {
-            Carrinho novoCarrinho = new Carrinho();
-            novoCarrinho.setUsuario(carrinhoDTO.usuario());
-            novoCarrinho.setProduto(carrinhoDTO.produto());
-            novoCarrinho.setQuantidade(1);
-            repositoryCarrinho.save(novoCarrinho);
-        }
-
-        Produto produto = repositoryProduto
-                .findById(produtoId)
-                .orElseThrow();
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(produto);
+    @PostMapping
+    public ResponseEntity<ProdutoResponse> addCarrinho(@RequestBody @Valid CarrinhoRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(carrinhoService.adicionar(request));
     }
 
     @GetMapping("/user/{idUsuario}")
-    public ResponseEntity<List<CarrinhoResponseDTO>> getProdutosCarrinho(@PathVariable(value = "idUsuario") Integer idUsuario){
-        List<Carrinho> carrinho = repositoryCarrinho.findByUsuarioId(idUsuario);
-        List<CarrinhoResponseDTO> response = carrinho.stream()
-                .map(item -> new CarrinhoResponseDTO(item.getProduto(),
-                        item.getQuantidade()
-                ))
-                .toList();
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<List<CarrinhoItemResponse>> getProdutosCarrinho(@PathVariable Integer idUsuario) {
+        return ResponseEntity.ok(carrinhoService.listarPorUsuario(idUsuario));
     }
 
     @GetMapping("/user/{idUsuario}/total")
-    public ResponseEntity<CarrinhoTotalDTO> getTotalCarrinho(
-            @PathVariable Integer idUsuario
-    ) {
-        List<Carrinho> carrinho = repositoryCarrinho.findByUsuarioId(idUsuario);
-
-        BigDecimal total = carrinho.stream()
-                .map(item ->
-                        BigDecimal.valueOf(item.getProduto().getPrice())
-                                .multiply(BigDecimal.valueOf(item.getQuantidade()))
-                )
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        return ResponseEntity.ok(new CarrinhoTotalDTO(total));
+    public ResponseEntity<CarrinhoTotalResponse> getTotalCarrinho(@PathVariable Integer idUsuario) {
+        return ResponseEntity.ok(carrinhoService.calcularTotal(idUsuario));
     }
 
-    @Transactional
-    @DeleteMapping("user/{idUsuario}/product/{idProduto}")
-    public ResponseEntity<Object> removeCarrinho(@PathVariable(value = "idUsuario") Integer idUsuario,
-                                                 @PathVariable(value = "idProduto") Integer idProduto){
-
-        repositoryCarrinho.deleteByUsuarioIdAndProdutoId(idUsuario, idProduto);
+    @DeleteMapping("/user/{idUsuario}/product/{idProduto}")
+    public ResponseEntity<Void> removeCarrinho(@PathVariable Integer idUsuario,
+                                               @PathVariable Integer idProduto) {
+        carrinhoService.remover(idUsuario, idProduto);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/user/{idUsuario}/product/{idProduto}/increment")
-    public ResponseEntity<Void> incrementarQuantidade(
-            @PathVariable Integer idUsuario,
-            @PathVariable Integer idProduto
-    ) {
-        Carrinho carrinho = repositoryCarrinho
-                .findByUsuarioIdAndProdutoId(idUsuario, idProduto)
-                .orElseThrow(() -> new RuntimeException("Produto não encontrado no carrinho"));
-
-        carrinho.setQuantidade(carrinho.getQuantidade() + 1);
-        repositoryCarrinho.save(carrinho);
-
+    public ResponseEntity<Void> incrementarQuantidade(@PathVariable Integer idUsuario,
+                                                      @PathVariable Integer idProduto) {
+        carrinhoService.incrementarQuantidade(idUsuario, idProduto);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/user/{idUsuario}/product/{idProduto}/decrement")
-    public ResponseEntity<Void> decrementarQuantidade(
-            @PathVariable Integer idUsuario,
-            @PathVariable Integer idProduto
-    ) {
-        Carrinho carrinho = repositoryCarrinho
-                .findByUsuarioIdAndProdutoId(idUsuario, idProduto)
-                .orElseThrow(() -> new RuntimeException("Produto não encontrado no carrinho"));
-
-        if (carrinho.getQuantidade() > 1) {
-            carrinho.setQuantidade(carrinho.getQuantidade() - 1);
-            repositoryCarrinho.save(carrinho);
-            return ResponseEntity.noContent().build();
-        } else {
-            repositoryCarrinho.delete(carrinho);
-            return ResponseEntity.ok().build();
-        }
-
-
+    public ResponseEntity<Void> decrementarQuantidade(@PathVariable Integer idUsuario,
+                                                      @PathVariable Integer idProduto) {
+        carrinhoService.decrementarQuantidade(idUsuario, idProduto);
+        return ResponseEntity.noContent().build();
     }
-
 }

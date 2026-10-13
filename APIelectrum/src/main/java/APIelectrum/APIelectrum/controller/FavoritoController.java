@@ -1,14 +1,9 @@
 package APIelectrum.APIelectrum.controller;
 
-import APIelectrum.APIelectrum.dto.FavoritoDTO;
-import APIelectrum.APIelectrum.module.Carrinho;
-import APIelectrum.APIelectrum.module.Favorito;
-import APIelectrum.APIelectrum.module.Produto;
-import APIelectrum.APIelectrum.repository.FavoritoRepository;
-import APIelectrum.APIelectrum.repository.ProdutoRepository;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import APIelectrum.APIelectrum.dto.request.FavoritoRequest;
+import APIelectrum.APIelectrum.dto.response.ProdutoResponse;
+import APIelectrum.APIelectrum.service.FavoritoService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,42 +18,27 @@ import java.util.List;
 })
 @RequestMapping("/favorites")
 public class FavoritoController {
-    @Autowired
-    FavoritoRepository repositoryFavorito;
-    @Autowired
-    private ProdutoRepository repositoryProduto;
 
-    @PostMapping()
-    public ResponseEntity<Produto> addFavorito(@RequestBody FavoritoDTO favorioDTO){
-        var favoritoModelo = new Favorito();
-        BeanUtils.copyProperties(favorioDTO, favoritoModelo);
+    private final FavoritoService favoritoService;
 
-        var favoritoSalvo = repositoryFavorito.save(favoritoModelo);
-
-        Produto produto = repositoryProduto.findById(
-                favorioDTO.produto().getId()
-        ).orElseThrow();
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(produto);
+    public FavoritoController(FavoritoService favoritoService) {
+        this.favoritoService = favoritoService;
     }
 
-    @GetMapping("user/{idUsuario}")
-    public ResponseEntity<List<Produto>> getProdutosFavoritos(@PathVariable(value = "idUsuario") Integer idUsuario){
-        List<Favorito> favoritos = repositoryFavorito.findByUsuarioId(idUsuario);
-        List<Produto> produtos = favoritos.stream()
-                .map(Favorito::getProduto)
-                .toList();
-
-        return ResponseEntity.ok(produtos);
+    @PostMapping
+    public ResponseEntity<ProdutoResponse> addFavorito(@RequestBody @Valid FavoritoRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(favoritoService.adicionar(request));
     }
 
-    @Transactional
-    @DeleteMapping("user/{idUsuario}/product/{idProduto}")
-    public ResponseEntity<Object> removeFavorito(@PathVariable(value = "idUsuario") Integer idUsuario,
-                                                 @PathVariable(value = "idProduto") Integer idProduto){
+    @GetMapping("/user/{idUsuario}")
+    public ResponseEntity<List<ProdutoResponse>> getProdutosFavoritos(@PathVariable Integer idUsuario) {
+        return ResponseEntity.ok(favoritoService.listarPorUsuario(idUsuario));
+    }
 
-        repositoryFavorito.deleteByUsuarioIdAndProdutoId(idUsuario, idProduto);
+    @DeleteMapping("/user/{idUsuario}/product/{idProduto}")
+    public ResponseEntity<Void> removeFavorito(@PathVariable Integer idUsuario,
+                                               @PathVariable Integer idProduto) {
+        favoritoService.remover(idUsuario, idProduto);
         return ResponseEntity.noContent().build();
     }
-
 }
